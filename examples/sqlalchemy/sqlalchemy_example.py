@@ -33,8 +33,6 @@ class Record(Base):
 
 
 class DBCacheManager(CacheManager):
-    KEY_BASE = u'sql_ex'
-
     def after_load(self, data, f_args=None, f_kwargs=None):
         obj = super(DBCacheManager, self).after_load(data, f_args=f_args,
                                                      f_kwargs=f_kwargs)
@@ -69,7 +67,7 @@ def main():
     session.commit()
     session.close()
 
-    cache_manager = DBCacheManager(ttl=5)
+    cache_manager = DBCacheManager(key_base=u'sql_ex', ttl=5)
 
     @cache_manager.cache
     def get_record_by_id(id_, session=session):

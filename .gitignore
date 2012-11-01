@@ -1,3 +1,6 @@
 .DS_Store
 *.pyc
 *.pyo
+RedCache.egg-info/
+build/
+dist/
