@@ -1,0 +1,221 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to RedCache documentation! &mdash; RedCache 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="RedCache 0.1 documentation" href="#" />
+    <link rel="next" title="redcache.cache_manager Module" href="api/cache_manager.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api/cache_manager.html" title="redcache.cache_manager Module"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">RedCache 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="welcome-to-redcache-documentation">
+<h1>Welcome to RedCache documentation!<a class="headerlink" href="#welcome-to-redcache-documentation" title="Permalink to this headline">¶</a></h1>
+<p>RedCache is a lightweight and extensible caching framework for Python
+applications. It uses Redis as its storage backend.</p>
+<div class="section" id="quickstart">
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h2>
+<p>Suppose we have a function that loads data from a remote source:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">load_something_from_somewhere</span><span class="p">():</span>
+    <span class="c"># Load the data...</span>
+    <span class="k">return</span> <span class="n">data</span>
+</pre></div>
+</div>
+<p>Now let&#8217;s use it in a Flask view:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&#39;/something/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_something</span><span class="p">():</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">load_something_from_somewhere</span><span class="p">()</span>
+    <span class="c"># Do something with the data...</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The problem here is that the view will wait until the data is fetched. If the
+view is called often it&#8217;ll generate significant traffic between our server and
+the remote source. This isn&#8217;t pretty.</p>
+<p>What if we cached the loaded data for some time and refresh it only when the
+cache expires? That would be pretty.</p>
+<p>There are many caching solutions, e.g.
+<a class="reference external" href="http://beaker.readthedocs.org/en/latest/">Beaker</a>. RedCache is similar to
+(and inspired by) Beaker but provides only one storage backend - Redis.</p>
+<p>So, how do you cache <em>load_something_from_somewhere</em> using Redis and RedCache?</p>
+<p>First setup Redis connection before starting the app:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">redcache</span> <span class="kn">import</span> <span class="n">use_connection</span>
+<span class="n">use_connection</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Then make the function cached:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">redcache</span> <span class="kn">import</span> <span class="n">default_cache</span>
+
+<span class="nd">@default_cache.cache</span><span class="p">(</span><span class="n">ttl</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">load_something_from_somewhere</span><span class="p">():</span>
+    <span class="c"># Load the data...</span>
+    <span class="k">return</span> <span class="n">data</span>
+</pre></div>
+</div>
+<p>Next time <em>load_something_from_somewhere</em> is called RedCache will try to load
+its last return value from Redis. If it&#8217;s not found then the function will be
+executed and its return value stored in Redis for 5 seconds.</p>
+<p><tt class="docutils literal"><span class="pre">redcache.default_cache</span></tt> is an instance of
+<a class="reference internal" href="api/cache_manager.html#redcache.cache_manager.DefaultCacheManager" title="redcache.cache_manager.DefaultCacheManager"><tt class="xref py py-class docutils literal"><span class="pre">redcache.cache_manager.DefaultCacheManager</span></tt></a> which gives convenient
+access to caching mechanism which uses cPickle behind
+the scenes. By default the keys will be stored infinitely. Use <em>ttl</em> keyword
+argument in the decorator to define different TTL.</p>
+</div>
+<div class="section" id="extending-and-advanced-use">
+<h2>Extending and advanced use<a class="headerlink" href="#extending-and-advanced-use" title="Permalink to this headline">¶</a></h2>
+<p>RedCache can be easily extended to utilize Redis&#8217; datatypes and features.</p>
+<p>By overriding <a class="reference internal" href="api/cache_manager.html#redcache.cache_manager.CacheManager.after_load" title="redcache.cache_manager.CacheManager.after_load"><tt class="xref py py-meth docutils literal"><span class="pre">redcache.cache_manager.CacheManager.after_load()</span></tt></a> and
+<a class="reference internal" href="api/cache_manager.html#redcache.cache_manager.CacheManager.before_save" title="redcache.cache_manager.CacheManager.before_save"><tt class="xref py py-meth docutils literal"><span class="pre">redcache.cache_manager.CacheManager.before_save()</span></tt></a> you can perform
+additional operations on data. This way you can e.g. store JSON strings instead
+of pickled objects.</p>
+<p>By overriding
+<a class="reference internal" href="api/cache_manager.html#redcache.cache_manager.CacheManager.load" title="redcache.cache_manager.CacheManager.load"><tt class="xref py py-meth docutils literal"><span class="pre">redcache.cache_manager.CacheManager.load()</span></tt></a> and
+<a class="reference internal" href="api/cache_manager.html#redcache.cache_manager.CacheManager.save" title="redcache.cache_manager.CacheManager.save"><tt class="xref py py-meth docutils literal"><span class="pre">redcache.cache_manager.CacheManager.save()</span></tt></a> you can change the way data
+is loaded and saved. This way you can e.g. store lists of individual objects
+and retrieve them according to pagination options.</p>
+<p>Consult examples to see how to integrate RedCache with SQLAlchemy and to see
+how to use JSON instead of cPickle.</p>
+</div>
+<div class="section" id="api-documentation">
+<h2>API documentation<a class="headerlink" href="#api-documentation" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/cache_manager.html"><tt class="docutils literal"><span class="pre">redcache.cache_manager</span></tt> Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/connection.html"><tt class="docutils literal"><span class="pre">redcache.connection</span></tt> Module</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="author-credits-and-license">
+<h2>Author, credits and license<a class="headerlink" href="#author-credits-and-license" title="Permalink to this headline">¶</a></h2>
+<p>RedCache is developed by <a class="reference external" href="http://www.bthlabs.pl/">BTHLabs</a>.</p>
+<p>RedCache is licensed under BSD License.
+See <a class="reference external" href="https://github.com/tomekwojcik/redcache/blob/master/LICENSE">LICENSE</a>
+for more details.</p>
+<p>This project uses Redis connection management code from
+<a class="reference external" href="http://python-rq.org/">RQ</a>.</p>
+<p>This project uses context-local objects code from
+<a class="reference external" href="http://werkzeug.pocoo.org/">Werkzeug</a>.</p>
+</div>
+<div class="section" id="source-code">
+<h2>Source code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
+<p>Source code is available from
+<a class="reference external" href="https://github.com/tomekwojcik/redcache/">project repository</a> on GitHub.</p>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to RedCache documentation!</a><ul>
+<li><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li><a class="reference internal" href="#extending-and-advanced-use">Extending and advanced use</a></li>
+<li><a class="reference internal" href="#api-documentation">API documentation</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#author-credits-and-license">Author, credits and license</a></li>
+<li><a class="reference internal" href="#source-code">Source code</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="api/cache_manager.html"
+                        title="next chapter"><tt class="docutils literal"><span class="pre">redcache.cache_manager</span></tt> Module</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api/cache_manager.html" title="redcache.cache_manager Module"
+             >next</a> |</li>
+        <li><a href="#">RedCache 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Tomek Wójcik.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

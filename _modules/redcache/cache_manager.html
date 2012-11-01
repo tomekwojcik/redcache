@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>redcache.cache_manager &mdash; RedCache 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="RedCache 0.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">RedCache 0.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for redcache.cache_manager</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :mod:`redcache.cache_manager` Module</span>
+<span class="sd">    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="sd">    This module implements CacheManager class.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="kn">from</span> <span class="nn">.connection</span> <span class="kn">import</span> <span class="n">get_current_connection</span>
+
+
+<div class="viewcode-block" id="CacheManager"><a class="viewcode-back" href="../../api/cache_manager.html#redcache.cache_manager.CacheManager">[docs]</a><span class="k">class</span> <span class="nc">CacheManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This is the base class for cache managers.</span>
+
+<span class="sd">    *ttl* is cache key TTL in seconds. Use *connection* to</span>
+<span class="sd">    use explicit Redis connection for the instance. If *connection* is</span>
+<span class="sd">    omitted you should use :func:`redis_cache.connection.use_connection` to</span>
+<span class="sd">    define global Redis connection.&quot;&quot;&quot;</span>
+
+    <span class="sd">&quot;&quot;&quot;Key base for this instance. Defaults to ``cache``.&quot;&quot;&quot;</span>
+    <span class="n">KEY_BASE</span> <span class="o">=</span> <span class="s">u&#39;cache&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">connection</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ttl</span> <span class="o">=</span> <span class="n">ttl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connection</span> <span class="o">=</span> <span class="n">connection</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="CacheManager.connection"><a class="viewcode-back" href="../../api/cache_manager.html#redcache.cache_manager.CacheManager.connection">[docs]</a>    <span class="k">def</span> <span class="nf">connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Connection property.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">get_current_connection</span><span class="p">()</span>
+</div>
+    <span class="k">def</span> <span class="nf">_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Key generator for function *f* with positional arguments *args*.&quot;&quot;&quot;</span>
+        <span class="n">f_args</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">args</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">f_args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">f_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;cls&#39;</span><span class="p">,</span> <span class="s">&#39;self&#39;</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">argparts</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">KEY_BASE</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">__name__</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="n">idx</span><span class="p">:]:</span>
+                <span class="n">argparts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="s">u&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">argparts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">key</span>
+
+<div class="viewcode-block" id="CacheManager.after_load"><a class="viewcode-back" href="../../api/cache_manager.html#redcache.cache_manager.CacheManager.after_load">[docs]</a>    <span class="k">def</span> <span class="nf">after_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Process and return *data* after loading it from Redis. *f_args* and</span>
+<span class="sd">        *f_kwargs* contain positional and keywords args passed to decorated</span>
+<span class="sd">        function.</span>
+
+<span class="sd">        Default implementation uses cPickle to unserialize data.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CacheManager.before_save"><a class="viewcode-back" href="../../api/cache_manager.html#redcache.cache_manager.CacheManager.before_save">[docs]</a>    <span class="k">def</span> <span class="nf">before_save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Process and return *data* before saving it to Redis. *f_args* and</span>
+<span class="sd">        *f_kwargs* contain positional and keywords args passed to decorated</span>
+<span class="sd">        function.</span>
+
+<span class="sd">        Default implementation uses cPickle to unserialize data.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CacheManager.load"><a class="viewcode-back" href="../../api/cache_manager.html#redcache.cache_manager.CacheManager.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load data for *key* from Redis. *f_args* and *f_kwargs* contain</span>
+<span class="sd">        positional and keywords args passed to decorated function.</span>
+
+<span class="sd">        Default implementation uses GET command.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CacheManager.save"><a class="viewcode-back" href="../../api/cache_manager.html#redcache.cache_manager.CacheManager.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Save data into Redis *key*. *f_args* and *f_kwargs* contain</span>
+<span class="sd">        positional and keywords args passed to decorated function.</span>
+
+<span class="sd">        Default implementation uses SET command.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decorate *f* function to enable caching it.</span>
+
+<span class="sd">        Cache key will be generated from ``self.KEY_BASE``, function name and</span>
+<span class="sd">        values of positional args passed to the function.&quot;&quot;&quot;</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_load</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+                <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">before_save</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">cached</span><span class="p">,</span> <span class="n">f_args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">f_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ttl</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">expire</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ttl</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">data</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">RedCache 0.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Tomek Wójcik.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,203 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>redcache.connection &mdash; RedCache 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="RedCache 0.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">RedCache 0.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for redcache.connection</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c"># Copyright 2012 Vincent Driessen. All rights reserved.</span>
+
+<span class="c"># Redistribution and use in source and binary forms, with or without modification,</span>
+<span class="c"># are permitted provided that the following conditions are met:</span>
+
+<span class="c">#    1. Redistributions of source code must retain the above copyright notice,</span>
+<span class="c">#       this list of conditions and the following disclaimer.</span>
+
+<span class="c">#    2. Redistributions in binary form must reproduce the above copyright notice,</span>
+<span class="c">#       this list of conditions and the following disclaimer in the documentation</span>
+<span class="c">#       and/or other materials provided with the distribution.</span>
+
+<span class="c"># THIS SOFTWARE IS PROVIDED BY VINCENT DRIESSEN ``AS IS&#39;&#39; AND ANY EXPRESS OR</span>
+<span class="c"># IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF</span>
+<span class="c"># MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT</span>
+<span class="c"># SHALL VINCENT DRIESSEN OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,</span>
+<span class="c"># INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT</span>
+<span class="c"># LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR</span>
+<span class="c"># PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF</span>
+<span class="c"># LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE</span>
+<span class="c"># OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF</span>
+<span class="c"># ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+
+<span class="c"># The views and conclusions contained in the software and documentation are those</span>
+<span class="c"># of the authors and should not be interpreted as representing official policies,</span>
+<span class="c"># either expressed or implied, of Vincent Driessen.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :mod:`redcache.connection` Module</span>
+<span class="sd">    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="sd">    This module implements Redis connection management.</span>
+
+<span class="sd">    It is based on ``rq.connection`` from `RQ &lt;http://python-rq.org/&gt;`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">Redis</span>
+<span class="kn">from</span> <span class="nn">.local</span> <span class="kn">import</span> <span class="n">LocalStack</span><span class="p">,</span> <span class="n">release_local</span>
+
+
+<span class="k">class</span> <span class="nc">NoRedisConnectionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">Connection</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">connection</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">connection</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">()</span>
+    <span class="n">push_connection</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">popped</span> <span class="o">=</span> <span class="n">pop_connection</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">popped</span> <span class="o">==</span> <span class="n">connection</span><span class="p">,</span> \
+            <span class="s">&#39;Unexpected Redis connection was popped off the stack. &#39;</span> \
+            <span class="s">&#39;Check your Redis connection setup.&#39;</span>
+
+
+<div class="viewcode-block" id="push_connection"><a class="viewcode-back" href="../../api/connection.html#redcache.connection.push_connection">[docs]</a><span class="k">def</span> <span class="nf">push_connection</span><span class="p">(</span><span class="n">redis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Pushes the given connection on the stack.&quot;&quot;&quot;</span>
+    <span class="n">_connection_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">redis</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="pop_connection"><a class="viewcode-back" href="../../api/connection.html#redcache.connection.pop_connection">[docs]</a><span class="k">def</span> <span class="nf">pop_connection</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Pops the topmost connection from the stack.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_connection_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="use_connection"><a class="viewcode-back" href="../../api/connection.html#redcache.connection.use_connection">[docs]</a><span class="k">def</span> <span class="nf">use_connection</span><span class="p">(</span><span class="n">redis</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Clears the stack and uses the given connection.  Protects against mixed</span>
+<span class="sd">    use of use_connection() and stacked connection contexts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">_connection_stack</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> \
+        <span class="s">&#39;You should not mix Connection contexts with use_connection().&#39;</span>
+    <span class="n">release_local</span><span class="p">(</span><span class="n">_connection_stack</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">redis</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">()</span>
+    <span class="n">push_connection</span><span class="p">(</span><span class="n">redis</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_current_connection"><a class="viewcode-back" href="../../api/connection.html#redcache.connection.get_current_connection">[docs]</a><span class="k">def</span> <span class="nf">get_current_connection</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the current Redis connection (i.e. the topmost on the</span>
+<span class="sd">    connection stack).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_connection_stack</span><span class="o">.</span><span class="n">top</span>
+
+</div>
+<span class="k">def</span> <span class="nf">resolve_connection</span><span class="p">(</span><span class="n">connection</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convenience function to resolve the given or the current connection.</span>
+<span class="sd">    Raises an exception if it cannot resolve a connection now.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">connection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">connection</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">get_current_connection</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">connection</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NoRedisConnectionException</span><span class="p">(</span>
+            <span class="s">&#39;Could not resolve a Redis connection.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">connection</span>
+
+
+<span class="n">_connection_stack</span> <span class="o">=</span> <span class="n">LocalStack</span><span class="p">()</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&#39;Connection&#39;</span><span class="p">,</span> <span class="s">&#39;get_current_connection&#39;</span><span class="p">,</span> <span class="s">&#39;push_connection&#39;</span><span class="p">,</span>
+    <span class="s">&#39;pop_connection&#39;</span><span class="p">,</span> <span class="s">&#39;use_connection&#39;</span>
+<span class="p">]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">RedCache 0.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Tomek Wójcik.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
