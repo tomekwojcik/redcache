@@ -53,7 +53,7 @@ its last return value from Redis. If it's not found then the function will be
 executed and its return value stored in Redis for 5 seconds.
 
 ``redcache.default_cache`` is an instance of
-:py:class:`redcache.cache_manager.DefaultCacheManager` which gives convenient
+``redcache.cache_manager.DefaultCacheManager`` which gives convenient
 access to caching mechanism which uses cPickle behind
 the scenes. By default the keys will be stored infinitely. Use *ttl* keyword
 argument in the decorator to define different TTL.
@@ -63,14 +63,14 @@ Extending and advanced use
 
 RedCache can be easily extended to utilize Redis' datatypes and features.
 
-By overriding :py:meth:`redcache.cache_manager.CacheManager.after_load` and
-:py:meth:`redcache.cache_manager.CacheManager.before_save` you can perform
+By overriding ``redcache.cache_manager.CacheManager.after_load`` and
+``redcache.cache_manager.CacheManager.before_save`` you can perform
 additional operations on data. This way you can e.g. store JSON strings instead
 of pickled objects.
 
 By overriding
-:py:meth:`redcache.cache_manager.CacheManager.load` and
-:py:meth:`redcache.cache_manager.CacheManager.save` you can change the way data
+``redcache.cache_manager.CacheManager.load`` and
+``redcache.cache_manager.CacheManager.save`` you can change the way data
 is loaded and saved. This way you can e.g. store lists of individual objects
 and retrieve them according to pagination options.
 
