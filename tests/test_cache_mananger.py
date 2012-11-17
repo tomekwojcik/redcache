@@ -59,4 +59,15 @@ class CacheManagerTestCase(TestCase):
         assert cache_manager.connection == my_connection
         assert cache_manager.connection != get_current_connection()
 
+    def test_no_connection(self):
+        connection = pop_connection()
 
+        cache_manager = CacheManager()
+
+        @cache_manager.cache
+        def testfunc(a):
+            return u'Cached "%s"' % unicode(a)
+
+        val = testfunc('TEST')
+
+        assert connection.get('cache:testfunc:TEST') is None

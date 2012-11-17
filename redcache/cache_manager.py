@@ -51,7 +51,9 @@ class CacheManager(object):
 
     *connection* allows binding the instance to an explicit Redis connection.
     If it is omitted global connection defined with
-    :func:`redcache.connection.use_connection` will be used."""
+    :func:`redcache.connection.use_connection` will be used.
+
+    If no connection is defined then no caching will happen."""
 
     def __init__(self, key_base=u'cache', ttl=None, connection=None):
         self._key_base = key_base
@@ -127,7 +129,10 @@ class CacheManager(object):
         def wrapper(*args, **kwargs):
             key = self.key(f, args)
 
-            data = self.load(key, f_args=args, f_kwargs=kwargs)
+            data = None
+            if self.connection:
+                self.load(key, f_args=args, f_kwargs=kwargs)
+
             if data:
                 data = self.after_load(data, f_args=args, f_kwargs=kwargs)
             else:
@@ -136,10 +141,12 @@ class CacheManager(object):
                 if data is not None:
                     cached = self.before_save(data, f_args=args,
                                               f_kwargs=kwargs)
-                    self.save(key, cached, f_args=args, f_kwargs=kwargs)
 
-                    if self._ttl:
-                        self.connection.expire(key, self._ttl)
+                    if self.connection:
+                        self.save(key, cached, f_args=args, f_kwargs=kwargs)
+
+                        if self._ttl:
+                            self.connection.expire(key, self._ttl)
 
             return data
 
@@ -166,7 +173,10 @@ class DefaultCacheManager(CacheManager):
             def wrapper(*args, **kwargs):
                 key = self.key(f, args)
 
-                data = self.load(key, f_args=args, f_kwargs=kwargs)
+                data = None
+                if self.connection:
+                    self.load(key, f_args=args, f_kwargs=kwargs)
+
                 if data:
                     data = self.after_load(data, f_args=args, f_kwargs=kwargs)
                 else:
@@ -175,10 +185,13 @@ class DefaultCacheManager(CacheManager):
                     if data is not None:
                         cached = self.before_save(data, f_args=args,
                                                   f_kwargs=kwargs)
-                        self.save(key, cached, f_args=args, f_kwargs=kwargs)
 
-                        if ttl:
-                            self.connection.expire(key, ttl)
+                        if self.connection:
+                            self.save(key, cached, f_args=args,
+                                      f_kwargs=kwargs)
+
+                            if ttl:
+                                self.connection.expire(key, ttl)
 
                 return data
 
