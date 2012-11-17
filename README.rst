@@ -1,5 +1,5 @@
-Welcome to RedCache documentation!
-==================================
+RedCache
+========
 
 RedCache is a lightweight and extensible caching framework for Python
 applications. It uses Redis as its storage backend.
