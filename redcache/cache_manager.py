@@ -79,8 +79,18 @@ class CacheManager(object):
         while creating the key."""
         f_args = inspect.getargspec(f).args
 
-        argparts = [self._key_base, f.__name__]
-        if len(f_args) > 0:
+        nameparts = [f.__name__]
+        if inspect.ismethod(f):
+            f_class = None
+            if inspect.isclass(f.im_self):
+                f_class = f.im_self  # f is a class method
+            else:
+                f_class = f.im_self.__class__  # f is an instance method
+
+            nameparts = [f_class.__name__] + nameparts
+
+        argparts = [self._key_base, '.'.join(nameparts)]
+        if args and len(f_args) > 0:
             idx = 0
             if f_args[0] in ('cls', 'self'):
                 idx = 1

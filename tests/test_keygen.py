@@ -12,7 +12,7 @@ class KeygenTestCase(TestCase):
         def testfunc():
             pass
 
-        assert cache_manager.key(testfunc, []) == 'cache:testfunc'
+        assert cache_manager.key(testfunc, None) == 'cache:testfunc'
 
     def test_functions(self):
         cache_manager = CacheManager()
@@ -37,3 +37,24 @@ class KeygenTestCase(TestCase):
 
         args = [None, 1, 2]
         assert cache_manager.key(testfunc3, args) == 'cache:testfunc3:1:2'
+
+    def test_methods(self):
+        cache_manager = CacheManager()
+
+        class MyClass(object):
+            def my_imethod(self):
+                return "I'm an instance method!"
+
+            @classmethod
+            def my_cmethod(cls):
+                return "I'm a class method!"
+
+            @staticmethod
+            def my_smethod():
+                return "I'm a static method!"
+
+        my_obj = MyClass()
+
+        assert cache_manager.key(my_obj.my_imethod, None) == 'cache:MyClass.my_imethod'
+        assert cache_manager.key(MyClass.my_cmethod, None) == 'cache:MyClass.my_cmethod'
+        assert cache_manager.key(MyClass.my_smethod, None) == 'cache:my_smethod'
