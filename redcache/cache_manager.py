@@ -77,12 +77,12 @@ class CacheManager(object):
         while creating the key."""
         f_args = inspect.getargspec(f).args
 
+        argparts = [self._key_base, f.__name__]
         if len(f_args) > 0:
             idx = 0
             if f_args[0] in ('cls', 'self'):
                 idx = 1
 
-            argparts = [self._key_base, f.__name__]
             for arg in args[idx:]:
                 argparts.append(unicode(arg))
 
