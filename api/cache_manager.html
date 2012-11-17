@@ -67,6 +67,7 @@ stored by this instance won&#8217;t expire.</p>
 <p><em>connection</em> allows binding the instance to an explicit Redis connection.
 If it is omitted global connection defined with
 <a class="reference internal" href="connection.html#redcache.connection.use_connection" title="redcache.connection.use_connection"><tt class="xref py py-func docutils literal"><span class="pre">redcache.connection.use_connection()</span></tt></a> will be used.</p>
+<p>If no connection is defined then no caching will happen.</p>
 <dl class="method">
 <dt id="redcache.cache_manager.CacheManager.after_load">
 <tt class="descname">after_load</tt><big>(</big><em>data</em>, <em>f_args=None</em>, <em>f_kwargs=None</em><big>)</big><a class="reference internal" href="../_modules/redcache/cache_manager.html#CacheManager.after_load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#redcache.cache_manager.CacheManager.after_load" title="Permalink to this definition">¶</a></dt>
@@ -87,7 +88,7 @@ function.</p>
 
 <dl class="method">
 <dt id="redcache.cache_manager.CacheManager.cache">
-<tt class="descname">cache</tt><big>(</big><em>f</em><big>)</big><a class="headerlink" href="#redcache.cache_manager.CacheManager.cache" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">cache</tt><big>(</big><em>f</em><big>)</big><a class="reference internal" href="../_modules/redcache/cache_manager.html#CacheManager.cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#redcache.cache_manager.CacheManager.cache" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorate <em>f</em> function to enable caching it.</p>
 <p>If the function returns <em>None</em> then it won&#8217;t be cached.</p>
 </dd></dl>
@@ -100,7 +101,7 @@ function.</p>
 
 <dl class="method">
 <dt id="redcache.cache_manager.CacheManager.key">
-<tt class="descname">key</tt><big>(</big><em>f</em>, <em>args</em><big>)</big><a class="headerlink" href="#redcache.cache_manager.CacheManager.key" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">key</tt><big>(</big><em>f</em>, <em>args</em><big>)</big><a class="reference internal" href="../_modules/redcache/cache_manager.html#CacheManager.key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#redcache.cache_manager.CacheManager.key" title="Permalink to this definition">¶</a></dt>
 <dd><p>Key generator for function <em>f</em> with positional arguments <em>args</em>.</p>
 <p>Example key: <tt class="docutils literal"><span class="pre">key_base:func_name:arg1:arg2</span></tt>.</p>
 <p><strong>Instance and class methods</strong></p>
@@ -128,14 +129,14 @@ positional and keywords args passed to decorated function.</p>
 
 <dl class="class">
 <dt id="redcache.cache_manager.DefaultCacheManager">
-<em class="property">class </em><tt class="descclassname">redcache.cache_manager.</tt><tt class="descname">DefaultCacheManager</tt><big>(</big><em>key_base=u'cache'</em>, <em>ttl=None</em>, <em>connection=None</em><big>)</big><a class="headerlink" href="#redcache.cache_manager.DefaultCacheManager" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">redcache.cache_manager.</tt><tt class="descname">DefaultCacheManager</tt><big>(</big><em>key_base=u'cache'</em>, <em>ttl=None</em>, <em>connection=None</em><big>)</big><a class="reference internal" href="../_modules/redcache/cache_manager.html#DefaultCacheManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#redcache.cache_manager.DefaultCacheManager" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is default cache manager for simple caching of generic
 functions.</p>
 <p>Basically it&#8217;s equivalent to <a class="reference internal" href="#redcache.cache_manager.CacheManager" title="redcache.cache_manager.CacheManager"><tt class="xref py py-class docutils literal"><span class="pre">CacheManager</span></tt></a> with default
 settings.</p>
 <dl class="method">
 <dt id="redcache.cache_manager.DefaultCacheManager.cache">
-<tt class="descname">cache</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#redcache.cache_manager.DefaultCacheManager.cache" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">cache</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/redcache/cache_manager.html#DefaultCacheManager.cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#redcache.cache_manager.DefaultCacheManager.cache" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorate <em>f</em> function to enable caching it.</p>
 <p>Use <em>ttl</em> keyword arg to override default infinite TTL.</p>
 <p>If the function returns <em>None</em> then it won&#8217;t be cached.</p>
