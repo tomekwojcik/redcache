@@ -141,7 +141,7 @@ class CacheManager(object):
 
             data = None
             if self.connection:
-                self.load(key, f_args=args, f_kwargs=kwargs)
+                data = self.load(key, f_args=args, f_kwargs=kwargs)
 
             if data:
                 data = self.after_load(data, f_args=args, f_kwargs=kwargs)
@@ -185,7 +185,7 @@ class DefaultCacheManager(CacheManager):
 
                 data = None
                 if self.connection:
-                    self.load(key, f_args=args, f_kwargs=kwargs)
+                    data = self.load(key, f_args=args, f_kwargs=kwargs)
 
                 if data:
                     data = self.after_load(data, f_args=args, f_kwargs=kwargs)

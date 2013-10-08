@@ -31,7 +31,7 @@
 import codecs
 from setuptools import setup
 
-version = '0.2'
+version = '0.3'
 
 desc_file = codecs.open('README.rst', 'r', 'utf-8')
 long_description = desc_file.read()
@@ -54,7 +54,7 @@ setup(
     author_email='tomek@bthlabs.pl',
     maintainer=u'Tomasz Wójcik'.encode('utf-8'),
     maintainer_email='tomek@bthlabs.pl',
-    url='http://tomekwojcik.github.com/redcache/',
+    url='http://tomekwojcik.github.io/redcache/',
     download_url='https://github.com/tomekwojcik/redcache/tarball/v%s' % version,
     description='Lightweight and extensible caching framework for Python applications. It uses Redis as its storage backend.',
     long_description=long_description,
